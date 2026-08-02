@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>אבחון הגילוי הדיגיטלי | DDA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* SAP Fiori / Horizon (Quartz Light) design tokens */
+    --sap-brand:#0070F2;
+    --sap-brand-dark:#0040A0;
+    --sap-brand-tint:#E6F0FE;
+    --sap-shell:#354A5F;
+    --sap-shell-2:#28384A;
+    --sap-page-bg:#F5F6F7;
+    --sap-tile-bg:#FFFFFF;
+    --sap-text:#1D2D3E;
+    --sap-text-soft:#6A6D70;
+    --sap-border:#D9D9D9;
+    --sap-border-strong:#89919A;
+    --sap-positive:#257A3E;
+    --sap-positive-bg:#F1FDF6;
+    --sap-critical:#E9730C;
+    --sap-critical-bg:#FEF7F1;
+    --sap-negative:#B00;
+    --sap-negative-bg:#FFEBEB;
+    --sap-informative:#0070F2;
+    --radius:8px;
+    --font:"72","72full","Segoe UI","Arial Hebrew","Noto Sans Hebrew",Arial,Helvetica,sans-serif;
+    --font-mono:"Consolas","72",monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--sap-page-bg);
+    color:var(--sap-text);
+    font-family:var(--font);
+    font-size:14px;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:var(--font-mono);}
+
+  /* ===================== SHELL BAR (SAP Fiori Shell) ===================== */
+  .shellbar{
+    background:#13192F;
+    color:#fff;
+    height:48px;
+    display:flex;align-items:center;
+    padding:0 16px;
+    gap:12px;
+  }
+  .abra-logo{display:flex;align-items:center;gap:9px;flex:none;}
+  .abra-logo svg{display:block;}
+  .abra-word{
+    font-family:'Baloo 2','72',var(--font);
+    font-weight:800;font-size:21px;line-height:1;
+    color:#fff;letter-spacing:.2px;
+  }
+  .shellbar .shell-sep{width:1px;height:20px;background:rgba(255,255,255,.25);margin:0 4px;}
+  .shellbar .shell-sub{font-size:12.5px;color:#C7D0DA;font-weight:400;}
+  .shellbar .shell-spacer{flex:1;}
+  .shellbar .shell-avatar{
+    width:26px;height:26px;border-radius:50%;background:#5A93E8;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#0F2540;flex:none;
+  }
+
+  /* ===================== OBJECT PAGE HEADER ===================== */
+  .op-header{
+    background:#fff;
+    border-bottom:1px solid var(--sap-border);
+    padding:20px 24px 0;
+  }
+  .op-header-inner{max-width:1180px;margin:0 auto;}
+  .op-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .op-title{font-size:24px;font-weight:700;margin:0;color:var(--sap-text);}
+  .op-subtitle{font-size:13px;color:var(--sap-text-soft);margin:4px 0 16px;}
+  .op-kpi-strip{display:flex;gap:28px;margin-bottom:14px;flex-wrap:wrap;}
+  .op-kpi{display:flex;flex-direction:column;}
+  .op-kpi .v{font-size:20px;font-weight:700;color:var(--sap-brand);font-family:var(--font-mono);}
+  .op-kpi .l{font-size:11.5px;color:var(--sap-text-soft);}
+
+  /* Anchor bar (tabs) */
+  .anchorbar{display:flex;gap:2px;max-width:1180px;margin:0 auto;overflow-x:auto;}
+  .anchor-tab{
+    padding:12px 18px 11px;
+    font-size:13.5px;font-weight:600;color:var(--sap-text-soft);
+    border-bottom:3px solid transparent;
+    cursor:pointer;white-space:nowrap;
+    display:flex;align-items:center;gap:8px;
+    background:none;border-top:none;border-left:none;border-right:none;
+    font-family:var(--font);
+  }
+  .anchor-tab .idx{
+    width:18px;height:18px;border-radius:50%;
+    font-size:10px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    background:#EAECEE;color:var(--sap-text-soft);
+    font-family:var(--font-mono);
+  }
+  .anchor-tab.active{color:var(--sap-brand);border-bottom-color:var(--sap-brand);}
+  .anchor-tab.active .idx{background:var(--sap-brand);color:#fff;}
+  .anchor-tab.done .idx{background:var(--sap-positive);color:#fff;}
+  .anchor-tab:hover{color:var(--sap-brand-dark);}
+
+  /* ===================== APP SHELL ===================== */
+  .app{max-width:1180px;margin:0 auto;padding:22px 20px 60px;}
+
+  /* ===================== PANELS (Fiori Panel/Form) ===================== */
+  .panel{
+    background:var(--sap-tile-bg);
+    border:1px solid var(--sap-border);
+    border-radius:var(--radius);
+    margin-bottom:16px;
+  }
+  .panel-header{
+    padding:14px 20px;
+    border-bottom:1px solid var(--sap-border);
+    font-size:15px;font-weight:700;color:var(--sap-text);
+    display:flex;align-items:center;justify-content:between;gap:8px;
+  }
+  .panel-body{padding:20px;}
+  .panel-body-tight{padding:16px;}
+
+  /* Message strip (Fiori) */
+  .msg-strip{
+    display:flex;gap:10px;align-items:flex-start;
+    padding:10px 14px;border-radius:6px;
+    font-size:12.8px;line-height:1.65;
+    border-inline-start:4px solid var(--sap-informative);
+    background:var(--sap-brand-tint);color:var(--sap-text);
+  }
+  .msg-strip svg{flex:none;margin-top:1px;}
+  .msg-strip.warning{border-color:var(--sap-critical);background:var(--sap-critical-bg);}
+
+  /* ===================== BUTTONS (Fiori Button types) ===================== */
+  .btn{
+    font-family:var(--font);
+    font-weight:600;font-size:14px;
+    padding:9px 18px;border-radius:6px;
+    border:1px solid transparent;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+    height:36px;
+    transition:background .12s ease,border-color .12s ease;
+  }
+  .btn-emphasized{background:var(--sap-brand);color:#fff;border-color:var(--sap-brand);}
+  .btn-emphasized:hover{background:var(--sap-brand-dark);border-color:var(--sap-brand-dark);}
+  .btn-emphasized:focus-visible{outline:2px solid #7DAEF2;outline-offset:2px;}
+  .btn-default{background:#fff;color:var(--sap-text);border-color:var(--sap-border-strong);}
+  .btn-default:hover{background:#F5F6F7;border-color:var(--sap-text-soft);}
+  .btn-transparent{background:none;color:var(--sap-brand);border-color:transparent;}
+  .btn-transparent:hover{background:var(--sap-brand-tint);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-row{display:flex;justify-content:space-between;margin-top:22px;gap:10px;}
+
+  /* ===================== FORM (Fiori Simple Form) ===================== */
+  .form-label{display:block;font-size:12.5px;font-weight:600;color:var(--sap-text-soft);margin-bottom:5px;}
+  .form-hint{font-size:11.5px;color:var(--sap-text-soft);margin-top:4px;}
+  input[type=text], input[type=number], select, textarea{
+    width:100%;
+    font-family:var(--font);
+    font-size:14px;
+    padding:8px 11px;
+    border-radius:6px;
+    border:1px solid var(--sap-border-strong);
+    background:#fff;
+    color:var(--sap-text);
+    height:36px;
+  }
+  textarea{height:auto;min-height:64px;resize:vertical;}
+  input:focus, select:focus, textarea:focus{outline:none;border-color:var(--sap-brand);box-shadow:0 0 0 2px var(--sap-brand-tint);}
+  .field{margin-bottom:16px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:760px){.grid2{grid-template-columns:1fr;}}
+  .section-divider{border:none;border-top:1px solid var(--sap-border);margin:18px 0;}
+
+  .radio-row, .check-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill-option{
+    border:1px solid var(--sap-border-strong);border-radius:16px;
+    padding:6px 14px;font-size:13px;font-weight:600;color:var(--sap-text-soft);
+    cursor:pointer;background:#fff;user-select:none;
+  }
+  .pill-option input{display:none;}
+  .pill-option.picked{border-color:var(--sap-brand);background:var(--sap-brand-tint);color:var(--sap-brand-dark);}
+
+  /* ===================== INTRO / TIMELINE ===================== */
+  .hero{display:block;}
+  .hero p{font-size:14px;line-height:1.75;color:var(--sap-text-soft);margin:0 0 12px;}
+  .process-steps{display:flex;flex-direction:column;margin:18px 0 6px;}
+  .process-step{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--sap-border);}
+  .process-step:last-child{border-bottom:none;}
+  .process-num{
+    width:28px;height:28px;border-radius:50%;background:var(--sap-brand-tint);color:var(--sap-brand);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;flex:none;
+    font-family:var(--font-mono);
+  }
+  .process-text b{display:block;font-size:13.5px;color:var(--sap-text);}
+  .process-text span{font-size:12.5px;color:var(--sap-text-soft);}
+
+  /* ===================== RADIAL MICRO CHART TILES (Fiori) ===================== */
+  .tile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .kpi-tile{
+    border:1px solid var(--sap-border);border-radius:var(--radius);
+    padding:12px;background:#fff;
+    display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+  }
+  .kpi-tile .tile-name{font-size:12px;font-weight:700;color:var(--sap-text);}
+  .kpi-tile .tile-sub{font-size:10.5px;color:var(--sap-text-soft);}
+  .radial{position:relative;width:64px;height:64px;}
+  .radial .radial-num{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;color:var(--sap-text);font-family:var(--font-mono);
+  }
+
+  /* ===================== DISCOVERY LAYOUT ===================== */
+  .discover-layout{display:grid;grid-template-columns:250px 1fr;gap:18px;align-items:start;}
+  @media (max-width:900px){.discover-layout{grid-template-columns:1fr;}}
+  .lob-nav{display:flex;flex-direction:column;gap:4px;position:sticky;top:12px;}
+  .lob-nav-btn{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 12px;border-radius:6px;border:1px solid transparent;
+    background:none;cursor:pointer;text-align:right;font-family:var(--font);
+    border-inline-start:3px solid transparent;
+  }
+  .lob-nav-btn:hover{background:#F5F6F7;}
+  .lob-nav-btn.active{background:var(--sap-brand-tint);border-inline-start-color:var(--sap-brand);}
+  .lob-nav-btn .name{font-size:13px;font-weight:700;color:var(--sap-text);}
+  .lob-nav-btn .sub{font-size:10.5px;color:var(--sap-text-soft);font-weight:400;}
+  .lob-nav-badge{
+    margin-inline-start:auto;font-size:11px;font-weight:700;color:var(--sap-text-soft);
+    font-family:var(--font-mono);background:#EAECEE;border-radius:10px;padding:2px 8px;flex:none;
+  }
+  .lob-nav-btn.active .lob-nav-badge{background:var(--sap-brand);color:#fff;}
+
+  /* List items (Fiori List / Object List Item) */
+  .scope-item{border-bottom:1px solid var(--sap-border);padding:12px 4px;}
+  .scope-item:last-child{border-bottom:none;}
+  .scope-head{display:flex;align-items:flex-start;gap:12px;cursor:pointer;}
+  .check-box{
+    width:20px;height:20px;border-radius:4px;border:1.5px solid var(--sap-border-strong);flex:none;margin-top:1px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .scope-item.on .check-box{background:var(--sap-brand);border-color:var(--sap-brand);}
+  .check-box svg{width:12px;height:12px;display:none;}
+  .scope-item.on .check-box svg{display:block;}
+  .scope-name{font-size:13.5px;font-weight:700;color:var(--sap-text);}
+  .scope-desc{font-size:12px;color:var(--sap-text-soft);margin-top:2px;}
+  .scope-detail{margin:12px 0 2px 32px;padding-top:12px;border-top:1px dashed var(--sap-border);display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:560px){.scope-detail{grid-template-columns:1fr;margin-inline-start:0;}}
+
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:9px;margin-inline-start:4px;}
+  .badge-high{background:var(--sap-critical-bg);color:var(--sap-critical);}
+  .badge-med{background:#FFF7E0;color:#8A6A10;}
+  .badge-low{background:var(--sap-positive-bg);color:var(--sap-positive);}
+  .badge-p1{background:var(--sap-brand-tint);color:var(--sap-brand-dark);}
+  .badge-p2{background:#EAECEE;color:var(--sap-text-soft);}
+  .badge-p3{background:#F2F2F2;color:#8B8F94;}
+
+  .lob-content-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 4px;}
+  .lob-content-header h3{margin:0;font-size:17px;font-weight:700;}
+  .lob-content-header .count{font-size:12px;color:var(--sap-text-soft);font-family:var(--font-mono);}
+
+  /* ===================== SUMMARY TABLE ===================== */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+  @media (max-width:760px){.stat-row{grid-template-columns:1fr 1fr;}}
+  .stat{background:#fff;border:1px solid var(--sap-border);border-radius:var(--radius);padding:14px;text-align:center;}
+  .stat .num{font-size:22px;font-weight:700;color:var(--sap-brand);font-family:var(--font-mono);}
+  .stat .lbl{font-size:11.5px;color:var(--sap-text-soft);margin-top:2px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:var(--sap-shell);color:#fff;font-weight:700;padding:9px 12px;text-align:right;font-size:11.5px;}
+  td{padding:8px 12px;border-bottom:1px solid var(--sap-border);}
+  tr:nth-child(even) td{background:#FAFAFA;}
+  .lob-group-row td{background:var(--sap-brand-tint) !important;font-weight:700;color:var(--sap-brand-dark);font-size:12.5px;}
+
+  .empty-note{font-size:13px;color:var(--sap-text-soft);background:#FAFAFA;border:1px dashed var(--sap-border);border-radius:var(--radius);padding:16px;text-align:center;}
+
+  @media print{
+    .no-print{display:none !important;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<div class="shellbar no-print">
+  <div class="abra-logo">
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+      <polygon points="17,3 24,10 17,17 10,10" fill="#FF7648"/>
+      <circle cx="9" cy="24" r="7.2" fill="#FF9F00"/>
+      <polygon points="17,17.2 22.7,20.6 22.7,27.4 17,30.8 11.3,27.4 11.3,20.6" fill="#FE5388"/>
+      <circle cx="27" cy="24" r="7.2" fill="#FF7648"/>
+    </svg>
+    <span class="abra-word">abra</span>
+  </div>
+  <span class="shell-sep"></span>
+  <span class="shell-sub">SAP Activate · Discover Phase · S/4HANA Cloud Public Edition</span>
+  <span class="shell-spacer"></span>
+  <span class="shell-avatar">DDA</span>
+</div>
+
+<div class="op-header no-print">
+  <div class="op-header-inner">
+    <div class="op-title-row">
+      <div>
+        <p class="op-subtitle" style="margin-top:2px;">כלי לתיאום ציפיות בשלב הגילוי (Discover) — התאמת דרישות הלקוח לתהליכים העסקיים ב-SAP S/4HANA Cloud Public Edition</p>
+      </div>
+    </div>
+  </div>
+  <div class="anchorbar" id="stepsBar"></div>
+</div>
+
+<div class="app">
+  <div id="screen"></div>
+</div>
+
+<script>
+/* ===================== DATA ===================== */
+
+const LOBS = [
+  {
+    id:"fin", name:"כספים", short:"Finance",
+    items:[
+      {n:"הנהלת חשבונות כללית", d:"רישום תנועות חשבונאיות, ניהול ספרי חשבונות ודיווח כספי שוטף"},
+      {n:"ניהול נכסים קבועים", d:"רכישה, פחת וגריעה של רכוש קבוע"},
+      {n:"גבייה וניהול לקוחות", d:"מעקב חובות לקוחות, תזכורות תשלום והתאמות"},
+      {n:"תשלומים וניהול ספקים", d:"אישור חשבוניות ספק, תזמון תשלומים והתאמות בנק"},
+      {n:"ניהול תזרים מזומנים", d:"תחזית וניהול נזילות ברמת הארגון"},
+      {n:"תמחיר וחשבונאות ניהולית", d:"מרכזי עלות, רווחיות מוצר ודוחות ניהוליים"},
+      {n:"איחוד כספי קבוצתי", d:"קונסולידציה של דוחות כספיים בין ישויות"},
+      {n:"ניהול מיסים ודיווח רגולטורי", d:"חישוב מע\"מ, ניכויים ודיווחים לרשויות"},
+    ]
+  },
+  {
+    id:"sal", name:"מכירות", short:"Sales",
+    items:[
+      {n:"ניהול הזמנות מכירה", d:"קליטת הזמנות עד למשלוח וחשבונית"},
+      {n:"תמחור וחוזי מכירה", d:"מחירונים, הנחות ותנאי מסגרת מול לקוחות"},
+      {n:"ניהול הצעות מחיר", d:"הכנת הצעות מחיר והמרתן להזמנה"},
+      {n:"ניהול לקוחות ואנשי קשר", d:"מאגר לקוחות מרכזי ופרטי התקשרות"},
+      {n:"מכירות בין־חברתיות (Intercompany)", d:"תהליכי מכירה בין ישויות בתוך הקבוצה"},
+      {n:"ניהול עמלות ותמריצי מכירה", d:"חישוב עמלות לאנשי מכירות"},
+    ]
+  },
+  {
+    id:"src", name:"רכש ומיקור", short:"Sourcing & Procurement",
+    items:[
+      {n:"רכש תפעולי", d:"הזמנות רכש שוטפות מול ספקים מאושרים"},
+      {n:"ניהול ספקים", d:"רישום, הערכה ואישור ספקים"},
+      {n:"מכרזים והליכי מיקור (RFQ)", d:"בקשות הצעת מחיר והשוואת ספקים"},
+      {n:"הסכמי מסגרת רכש", d:"חוזי רכש ארוכי טווח ותנאי מסגרת"},
+      {n:"ניהול חשבוניות ספקים (3-way match)", d:"התאמה בין הזמנה, קבלה וחשבונית"},
+      {n:"רכש קטגוריות עקיפות (Indirect)", d:"רכש ציוד משרדי ושירותים כלליים"},
+    ]
+  },
+  {
+    id:"mfg", name:"ייצור", short:"Manufacturing",
+    items:[
+      {n:"תכנון ייצור (MRP)", d:"חישוב דרישות חומרים ולוחות זמנים לייצור"},
+      {n:"ניהול הזמנות ייצור", d:"פתיחה, מעקב וסגירת פקודות עבודה"},
+      {n:"ייצור דיסקרטי", d:"ייצור מוצרים בפריטים נפרדים לפי מבנה מוצר"},
+      {n:"ייצור תהליכי", d:"ייצור מבוסס נוסחאות ותהליכים רציפים"},
+      {n:"ניהול איכות בייצור", d:"בדיקות איכות בקבלה, בתהליך ובמוצר סופי"},
+    ]
+  },
+  {
+    id:"scm", name:"שרשרת אספקה", short:"Supply Chain",
+    items:[
+      {n:"ניהול מלאי", d:"מעקב מלאי, ספירות ותנועות מחסן"},
+      {n:"ניהול מחסנים", d:"ניהול מיקומים, קליטה וליקוט"},
+      {n:"תכנון ביקוש ומכירות ותפעול (S&OP)", d:"תיאום בין תחזית מכירות לתכנון תפעולי"},
+      {n:"ניהול הובלות", d:"תכנון ומעקב משלוחים והפצה"},
+      {n:"סחר בין־לאומי ומכס", d:"מסמכי יבוא/יצוא ורגולציית סחר"},
+    ]
+  },
+  {
+    id:"ast", name:"ניהול נכסים", short:"Asset Management",
+    items:[
+      {n:"תחזוקה מונעת", d:"תוכניות תחזוקה מבוססות זמן או שימוש"},
+      {n:"ניהול הזמנות עבודה לתחזוקה", d:"טיפול בתקלות ותיקונים"},
+      {n:"ניהול נכסי ייצור (EAM)", d:"מעקב אחר ציוד, מכונות ותשתיות"},
+    ]
+  },
+  {
+    id:"psv", name:"שירותים מקצועיים", short:"Professional Services",
+    items:[
+      {n:"ניהול פרויקטים", d:"תכנון לוחות זמנים, משימות ואבני דרך"},
+      {n:"דיווח שעות וחיוב פרויקטים", d:"רישום שעות עבודה והפקת חשבוניות ללקוח"},
+      {n:"ניהול משאבי פרויקט", d:"שיבוץ עובדים ומעקב עומסים"},
+    ]
+  },
+  {
+    id:"hr", name:"משאבי אנוש", short:"Human Resources",
+    items:[
+      {n:"ניהול נתוני עובד מרכזיים", d:"מאגר עובדים, מבנה ארגוני והיררכיה"},
+      {n:"ניהול ארגון ותפקידים", d:"הגדרת יחידות ארגוניות ותפקידים"},
+      {n:"אינטגרציה עם SAP SuccessFactors", d:"סנכרון נתוני כוח אדם עם מערכת HR ייעודית"},
+    ]
+  },
+  {
+    id:"rd", name:'מו"פ והנדסה', short:"R&D / Engineering",
+    items:[
+      {n:"ניהול מבני מוצר (BOM)", d:"רשימות חומרים ומרכיבי מוצר"},
+      {n:"ניהול שינויים הנדסיים", d:"מעקב גרסאות ושינויי תכנון"},
+    ]
+  },
+  {
+    id:"it", name:"IT וניהול ארגוני", short:"Enterprise Management / IT",
+    items:[
+      {n:"ניהול משתמשים והרשאות", d:"תפקידי אבטחה וניהול גישה"},
+      {n:"אינטגרציות וממשקי API", d:"חיבור למערכות צד ג' וענן"},
+      {n:"אנליטיקה ודוחות ניהוליים", d:"לוחות מחוונים ודיווח תפעולי בזמן אמת"},
+      {n:"ניהול תהליכים עסקיים ואוטומציה", d:"הגדרת זרימות עבודה ואישורים"},
+    ]
+  },
+];
+
+const INDUSTRIES = ["ייצור תעשייתי","קמעונאות","הייטק ותוכנה","שירותים פיננסיים","בריאות","אנרגיה ותשתיות","לוגיסטיקה והפצה","מגזר ציבורי","אחר"];
+const TIMELINES = ["תוך 6 חודשים","6–12 חודשים","12–24 חודשים","מעל 24 חודשים","טרם נקבע"];
+const CURR_ERP = ["SAP ECC / SAP Business Suite","SAP Business One","מערכת ERP אחרת","גיליונות אלקטרוניים / ללא מערכת מרכזית"];
+const DRIVERS = ["הפחתת עלויות","סטנדרטיזציה של תהליכים","מעבר לענן (Cloud-first)","חדשנות ויכולות AI","תמיכה בצמיחה בין־לאומית","שיפור דיווח ואנליטיקה"];
+
+/* ===================== STATE ===================== */
+
+let state = {
+  step: 0, // 0 intro, 1 qualification, 2 discovery, 3 summary
+  activeLob: LOBS[0].id,
+  qual: {
+    company:"", industry:"", countries:"", users:"", currentErp:"",
+    approach:"", timeline:"", drivers:[]
+  },
+  scope: {} // key `${lobId}::${itemIndex}` -> {on, priority, phase, notes}
+};
+
+function scopeKey(lobId, idx){ return lobId+"::"+idx; }
+function getScope(lobId, idx){
+  const k = scopeKey(lobId, idx);
+  if(!state.scope[k]) state.scope[k] = {on:false, priority:"גבוהה", phase:"שלב 1", notes:""};
+  return state.scope[k];
+}
+
+function lobStats(lobId){
+  const lob = LOBS.find(l=>l.id===lobId);
+  let selected = 0;
+  lob.items.forEach((_,idx)=>{ if(state.scope[scopeKey(lobId,idx)]?.on) selected++; });
+  return {selected, total: lob.items.length, pct: Math.round(100*selected/lob.items.length)};
+}
+function totalStats(){
+  let selected=0, total=0, lobsTouched=0;
+  LOBS.forEach(lob=>{
+    const s = lobStats(lob.id);
+    selected += s.selected; total += s.total;
+    if(s.selected>0) lobsTouched++;
+  });
+  return {selected, total, lobsTouched, pct: Math.round(100*selected/total)};
+}
+
+/* ===================== RENDER: ANCHOR BAR (steps) ===================== */
+
+const STEP_LABELS = ["פתיחה","הגדרת פרופיל","גילוי מפורט","סיכום ודוח"];
+function renderStepsBar(){
+  const bar = document.getElementById("stepsBar");
+  bar.innerHTML = STEP_LABELS.map((label,i)=>{
+    let cls = "anchor-tab";
+    if(i===state.step) cls+=" active";
+    else if(i<state.step) cls+=" done";
+    return `<button class="${cls}" onclick="goStep(${i})"><span class="idx">${i+1}</span>${label}</button>`;
+  }).join("");
+}
+
+/* ===================== RENDER: RADIAL MICRO CHART (Fiori component) ===================== */
+
+function radialMicroChart(pct, size=64, strokeW=6){
+  const r = (size-strokeW)/2;
+  const c = size/2;
+  const circumf = 2*Math.PI*r;
+  const offset = circumf * (1 - pct/100);
+  const color = pct>=75 ? "var(--sap-positive)" : pct>=35 ? "var(--sap-informative)" : pct>0 ? "var(--sap-critical)" : "#D9D9D9";
+  return `
+  <div class="radial" style="width:${size}px;height:${size}px;">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg);">
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#EAECEE" stroke-width="${strokeW}"/>
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${color}" stroke-width="${strokeW}"
+        stroke-dasharray="${circumf}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+    </svg>
+    <div class="radial-num">${pct}%</div>
+  </div>`;
+}
+
+function renderKpiTileGrid(){
+  return `<div class="tile-grid">
+    ${LOBS.map(lob=>{
+      const s = lobStats(lob.id);
+      return `<div class="kpi-tile">
+        ${radialMicroChart(s.pct, 60, 5)}
+        <div class="tile-name">${lob.name}</div>
+        <div class="tile-sub mono">${s.selected}/${s.total} נבחרו</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+/* ===================== RENDER: STEP 0 INTRO ===================== */
+
+function renderIntro(){
+  return `
+  <div class="panel">
+    <div class="panel-body">
+      <div class="hero">
+        <div>
+          <p>אבחון הגילוי הדיגיטלי (Digital Discovery Assessment – DDA) הוא הכלי שבו משתמשים בתהליך המכירה כדי להבין את דרישות הלקוח ולהתאים אותן לתהליכים העסקיים הקיימים ב-SAP S/4HANA Cloud Public Edition. זהו שלב שיתופי: מקבלי ההחלטות אצל הלקוח, יחד עם הפרטנר או איש המכירות של SAP, סוקרים יחד את תחומי הפעילות (Lines of Business) ובוחרים אילו תרחישים עסקיים (Scope Items) רלוונטיים לארגון.</p>
+          <p>התוצר הסופי הוא דוח היקף (Scope Report) שמועבר לצוות היישום בתחילת שלב ה-Prepare, ומשמש בסיס להגדרת הפרויקט.</p>
+
+          <div class="process-steps">
+            <div class="process-step">
+              <div class="process-num">1</div>
+              <div class="process-text"><b>הגדרת פרופיל מהירה (Quick Qualification)</b><span>פרטי ארגון, תעשייה, גיאוגרפיה והיקף משתמשים – לקביעת כיוון הפתרון</span></div>
+            </div>
+            <div class="process-step">
+              <div class="process-num">2</div>
+              <div class="process-text"><b>גילוי מפורט (Detailed Discovery)</b><span>סקירת תחומי פעילות ובחירת תרחישים עסקיים רלוונטיים, עדיפות ושלב יישום</span></div>
+            </div>
+            <div class="process-step">
+              <div class="process-num">3</div>
+              <div class="process-text"><b>דוח היקף וסיכום</b><span>מפת כיסוי לפי תחום, טבלת תרחישים שנבחרו, ומסמך מסירה לצוות היישום</span></div>
+            </div>
+          </div>
+
+          <button class="btn btn-emphasized" onclick="goStep(1)">
+            התחל אבחון
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 6l-6 6 6 6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="msg-strip warning">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#E9730C" stroke-width="2"/><path d="M12 8v5" stroke="#E9730C" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="#E9730C"/></svg>
+    <div><b>הערה:</b> כלי זה בנוי בהשראת מבנה ה-DDA הרשמי של SAP (בחירת פתרון, לוקליזציה, ו-16 תחומי פעילות עם מאות תרחישים עסקיים), עם מבחר תרחישים מייצג לכל תחום לצורך תרגול ותיאום ציפיות עם לקוחות. עבור אבחון רשמי ומחייב מול SAP, יש להשתמש בכלי ה-DDA הרשמי דרך הפרטנר או צוות המכירות של SAP.</div>
+  </div>
+  `;
+}
+
+/* ===================== RENDER: STEP 1 QUALIFICATION ===================== */
+
+function renderQualification(){
+  const q = state.qual;
+  const pillGroup = (name, options, current, multi=false) => options.map(opt=>{
+    const picked = multi ? current.includes(opt) : current===opt;
+    return `<label class="pill-option ${picked?'picked':''}">
+      <input type="${multi?'checkbox':'radio'}" name="${name}" value="${opt}" ${picked?'checked':''}
+        onchange="${multi? `toggleDriver('${opt}')` : `setQual('${name}','${opt}')`}">
+      ${opt}
+    </label>`;
+  }).join("");
+
+  return `
+  <div class="panel">
+    <div class="panel-header">הגדרת פרופיל מהירה (Quick Qualification)</div>
+    <div class="panel-body">
+      <p style="color:var(--sap-text-soft);font-size:13px;margin:0 0 20px;">כמה פרטים בסיסיים על הארגון, כדי לכוון את הגילוי המפורט לתחומים הרלוונטיים ביותר.</p>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="form-label">שם הארגון</label>
+          <input type="text" value="${q.company}" oninput="setQualSilent('company', this.value)" placeholder="לדוגמה: תעשיות אבן ובניה בע״מ">
+        </div>
+        <div class="field">
+          <label class="form-label">תעשייה / ענף</label>
+          <select onchange="setQual('industry', this.value)">
+            <option value="">בחר תעשייה</option>
+            ${INDUSTRIES.map(i=>`<option ${q.industry===i?'selected':''}>${i}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="form-label">מדינות / אזורי פעילות</label>
+          <input type="text" value="${q.countries}" oninput="setQualSilent('countries', this.value)" placeholder="לדוגמה: ישראל, גרמניה, ארה״ב">
+          <div class="form-hint">רלוונטי לקביעת הלוקליזציות הנדרשות בפתרון</div>
+        </div>
+        <div class="field">
+          <label class="form-label">מספר משתמשים משוער</label>
+          <input type="number" min="1" value="${q.users}" oninput="setQualSilent('users', this.value)" placeholder="לדוגמה: 120">
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="field">
+        <label class="form-label">מערכת ה-ERP הנוכחית</label>
+        <div class="radio-row">${pillGroup('currentErp', CURR_ERP, q.currentErp)}</div>
+      </div>
+
+      <div class="field">
+        <label class="form-label">גישת הארגון להטמעה</label>
+        <div class="radio-row">${pillGroup('approach', ["מונחה כספים (Finance-led)","מונחה תפעול (Operations-led)","משולב"], q.approach)}</div>
+      </div>
+
+      <div class="field">
+        <label class="form-label">לוח זמנים מתוכנן להטמעה</label>
+        <div class="radio-row">${pillGroup('timeline', TIMELINES, q.timeline)}</div>
+      </div>
+
+      <div class="field">
+        <label class="form-label">יעדי מעבר עיקריים (ניתן לבחור כמה)</label>
+        <div class="check-row">${pillGroup('drivers', DRIVERS, q.drivers, true)}</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-default" onclick="goStep(0)">חזרה</button>
+        <button class="btn btn-emphasized" onclick="goStep(2)">המשך לגילוי מפורט
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+/* ===================== RENDER: STEP 2 DISCOVERY ===================== */
+
+function renderDiscovery(){
+  const lobListHtml = LOBS.map(lob=>{
+    const s = lobStats(lob.id);
+    const active = lob.id===state.activeLob;
+    return `<button class="lob-nav-btn ${active?'active':''}" onclick="setActiveLob('${lob.id}')">
+      <span>
+        <span class="name">${lob.name}</span><br>
+        <span class="sub">${lob.short}</span>
+      </span>
+      <span class="lob-nav-badge">${s.selected}/${s.total}</span>
+    </button>`;
+  }).join("");
+
+  const lob = LOBS.find(l=>l.id===state.activeLob);
+  const s = lobStats(lob.id);
+
+  const itemsHtml = lob.items.map((item,idx)=>{
+    const sc = getScope(lob.id, idx);
+    return `
+    <div class="scope-item ${sc.on?'on':''}">
+      <div class="scope-head" onclick="toggleItem('${lob.id}',${idx})">
+        <div class="check-box"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="scope-name">${item.n}</div>
+          <div class="scope-desc">${item.d}</div>
+        </div>
+      </div>
+      ${sc.on ? `
+      <div class="scope-detail">
+        <div>
+          <label class="form-label">עדיפות</label>
+          <select onchange="setItemField('${lob.id}',${idx},'priority',this.value)">
+            ${["גבוהה","בינונית","נמוכה"].map(p=>`<option ${sc.priority===p?'selected':''}>${p}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">שלב יישום</label>
+          <select onchange="setItemField('${lob.id}',${idx},'phase',this.value)">
+            ${["שלב 1","שלב 2","עתידי"].map(p=>`<option ${sc.phase===p?'selected':''}>${p}</option>`).join("")}
+          </select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="form-label">הערות (אופציונלי)</label>
+          <textarea placeholder="דרישה מיוחדת, שאלה פתוחה וכו׳" oninput="setItemFieldSilent('${lob.id}',${idx},'notes',this.value)">${sc.notes}</textarea>
+        </div>
+      </div>` : ``}
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="panel">
+    <div class="panel-header">גילוי מפורט לפי תחומי פעילות (Detailed Discovery)</div>
+    <div class="panel-body">
+      <p style="color:var(--sap-text-soft);font-size:13px;margin:0 0 18px;">עברו על כל תחום, סמנו את התרחישים העסקיים הרלוונטיים לארגון וקבעו עדיפות ושלב יישום.</p>
+
+      <div class="discover-layout">
+        <div class="lob-nav">${lobListHtml}</div>
+        <div>
+          <div class="lob-content-header">
+            <h3>${lob.name} <span style="font-weight:400;font-size:13px;color:var(--sap-text-soft);">· ${lob.short}</span></h3>
+            <span class="count mono">${s.selected} מתוך ${s.total} נבחרו</span>
+          </div>
+          ${itemsHtml}
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-default" onclick="goStep(1)">חזרה</button>
+        <button class="btn btn-emphasized" onclick="goStep(3)">המשך לסיכום ולדוח
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+/* ===================== RENDER: STEP 3 SUMMARY ===================== */
+
+function priorityBadge(p){
+  if(p==="גבוהה") return `<span class="badge badge-high">גבוהה</span>`;
+  if(p==="בינונית") return `<span class="badge badge-med">בינונית</span>`;
+  return `<span class="badge badge-low">נמוכה</span>`;
+}
+function phaseBadge(p){
+  if(p==="שלב 1") return `<span class="badge badge-p1">שלב 1</span>`;
+  if(p==="שלב 2") return `<span class="badge badge-p2">שלב 2</span>`;
+  return `<span class="badge badge-p3">עתידי</span>`;
+}
+
+function renderSummary(){
+  const t = totalStats();
+  const q = state.qual;
+
+  let rows = "";
+  let anySelected = false;
+  LOBS.forEach(lob=>{
+    const selectedItems = lob.items.map((item,idx)=>({item, sc:getScope(lob.id,idx)})).filter(x=>x.sc.on);
+    if(selectedItems.length===0) return;
+    anySelected = true;
+    rows += `<tr class="lob-group-row"><td colspan="4">${lob.name} · ${lob.short} (${selectedItems.length})</td></tr>`;
+    selectedItems.forEach(({item,sc})=>{
+      rows += `<tr>
+        <td>${item.n}</td>
+        <td>${priorityBadge(sc.priority)}</td>
+        <td>${phaseBadge(sc.phase)}</td>
+        <td style="color:var(--sap-text-soft);font-size:12px;">${sc.notes || "—"}</td>
+      </tr>`;
+    });
+  });
+
+  return `
+  <div class="panel">
+    <div class="panel-header">סיכום ודוח היקף (Scope Report)</div>
+    <div class="panel-body">
+      <p style="color:var(--sap-text-soft);font-size:13px;margin:0 0 18px;">מסמך זה מסכם את פרופיל הלקוח ואת התרחישים העסקיים שנבחרו, ומהווה בסיס למסירה לצוות היישום בשלב ה-Prepare.</p>
+
+      <div class="stat-row">
+        <div class="stat"><div class="num mono">${t.selected}</div><div class="lbl">תרחישים נבחרו</div></div>
+        <div class="stat"><div class="num mono">${t.pct}%</div><div class="lbl">מתוך המדגם המוצג</div></div>
+        <div class="stat"><div class="num mono">${t.lobsTouched}/${LOBS.length}</div><div class="lbl">תחומי פעילות נסקרו</div></div>
+        <div class="stat"><div class="num mono">${q.users || "—"}</div><div class="lbl">משתמשים משוערים</div></div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="form-label" style="margin-bottom:10px;">כיסוי לפי תחום פעילות</div>
+          ${renderKpiTileGrid()}
+        </div>
+        <div>
+          <div class="form-label" style="margin-bottom:10px;">פרופיל הארגון</div>
+          <table style="font-size:13px;">
+            <tr><td style="font-weight:700;width:38%;">ארגון</td><td>${q.company || "—"}</td></tr>
+            <tr><td style="font-weight:700;">תעשייה</td><td>${q.industry || "—"}</td></tr>
+            <tr><td style="font-weight:700;">מדינות פעילות</td><td>${q.countries || "—"}</td></tr>
+            <tr><td style="font-weight:700;">מערכת נוכחית</td><td>${q.currentErp || "—"}</td></tr>
+            <tr><td style="font-weight:700;">גישת הטמעה</td><td>${q.approach || "—"}</td></tr>
+            <tr><td style="font-weight:700;">לוח זמנים</td><td>${q.timeline || "—"}</td></tr>
+            <tr><td style="font-weight:700;">יעדי מעבר</td><td>${q.drivers.length? q.drivers.join("; ") : "—"}</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-label" style="margin-bottom:10px;">תרחישים עסקיים שנבחרו</div>
+      ${anySelected ? `
+      <table>
+        <thead><tr><th>תרחיש עסקי</th><th>עדיפות</th><th>שלב</th><th>הערות</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : `<div class="empty-note">טרם נבחרו תרחישים. חזרו לשלב הגילוי המפורט כדי לסמן תרחישים רלוונטיים.</div>`}
+
+      <div class="btn-row no-print">
+        <button class="btn btn-default" onclick="goStep(2)">חזרה לעריכה</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-emphasized" onclick="window.print()">הדפס / שמור כ-PDF</button>
+          <button class="btn btn-default" onclick="resetAll()">התחל אבחון חדש</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+/* ===================== ACTIONS ===================== */
+
+function goStep(n){ state.step = n; render(); window.scrollTo({top:0, behavior:"smooth"}); }
+function setActiveLob(id){ state.activeLob = id; render(); }
+function setQual(field, value){ state.qual[field] = value; render(); }
+function setQualSilent(field, value){ state.qual[field] = value; } // no re-render: keeps text-input focus/caret intact
+function toggleDriver(opt){
+  const d = state.qual.drivers;
+  const i = d.indexOf(opt);
+  if(i>-1) d.splice(i,1); else d.push(opt);
+  render();
+}
+function toggleItem(lobId, idx){
+  const sc = getScope(lobId, idx);
+  sc.on = !sc.on;
+  render();
+}
+function setItemField(lobId, idx, field, value){
+  const sc = getScope(lobId, idx);
+  sc[field] = value;
+  render(); // priority/phase are <select> dropdowns, safe to re-render (badges, tiles, table update)
+}
+function setItemFieldSilent(lobId, idx, field, value){
+  const sc = getScope(lobId, idx);
+  sc[field] = value; // notes textarea: no re-render, keeps caret position while typing
+}
+
+function resetAll(){
+  state = {step:0, activeLob:LOBS[0].id, qual:{company:"",industry:"",countries:"",users:"",currentErp:"",approach:"",timeline:"",drivers:[]}, scope:{}};
+  render();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+/* ===================== MAIN RENDER ===================== */
+
+function render(){
+  renderStepsBar();
+  const screen = document.getElementById("screen");
+  if(state.step===0) screen.innerHTML = renderIntro();
+  else if(state.step===1) screen.innerHTML = renderQualification();
+  else if(state.step===2) screen.innerHTML = renderDiscovery();
+  else screen.innerHTML = renderSummary();
+}
+
+render();
+</script>
+</body>
+</html>
