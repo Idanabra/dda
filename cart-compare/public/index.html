@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>הסל הזול</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1c2430; --muted: #66707d; --line: #e3e6ea;
+    --brand: #0b7a5a; --brand-soft: #e5f4ee; --warn: #b45309; --warn-soft: #fff4e5;
+    --bad: #b42318; --best: #0b7a5a; --radius: 12px;
+    font-family: "Segoe UI", "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12161c; --card:#1b2129; --text:#e6e9ee; --muted:#9aa4b1; --line:#2c343e;
+      --brand:#3ccf9a; --brand-soft:#173329; --warn:#f0a44b; --warn-soft:#3a2a14; --bad:#ff7b72; --best:#3ccf9a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 15px; }
+  header { padding: 20px 16px 8px; max-width: 1040px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 26px; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main > *, #results > * { min-width: 0; }
+  main { max-width: 1040px; margin: 0 auto; padding: 8px 16px 48px; display: grid; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  .drop { display: block; border: 2px dashed var(--line); border-radius: var(--radius); padding: 28px 16px; text-align: center; cursor: pointer; transition: .15s; }
+  .drop.over, .drop:hover { border-color: var(--brand); background: var(--brand-soft); }
+  .drop strong { display: block; font-size: 17px; margin-bottom: 4px; }
+  .drop small { color: var(--muted); }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .muted { color: var(--muted); }
+  .chains { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+  .chain { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; }
+  .chain b { font-size: 15px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; background: var(--line); }
+  .pill.ok { background: var(--brand-soft); color: var(--brand); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .banner { background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+  .error { color: var(--bad); }
+  .hero { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .hero .big { font-size: 30px; font-weight: 700; color: var(--best); }
+  .bars { display: grid; gap: 8px; margin-top: 14px; }
+  .bar { display: grid; grid-template-columns: 90px 1fr 110px; gap: 10px; align-items: center; font-size: 14px; }
+  .bar .track { background: var(--line); border-radius: 6px; height: 14px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--muted); border-radius: 6px; }
+  .bar.best .fill { background: var(--best); }
+  .bar.best { font-weight: 700; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: top; }
+  th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: left; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.cheap { color: var(--best); font-weight: 700; }
+  td.none { color: var(--muted); }
+  .match { display: block; font-size: 11.5px; color: var(--muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  input.edit { font: inherit; border: 1px solid transparent; background: transparent; color: inherit; padding: 2px 4px; border-radius: 6px; width: 100%; }
+  input.edit:hover, input.edit:focus { border-color: var(--line); background: var(--bg); }
+  input.qty { width: 64px; }
+  .spinner { width: 18px; height: 18px; border: 3px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  @media (max-width: 560px) { .bar { grid-template-columns: 70px 1fr 90px; } .hero .big { font-size: 24px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 הסל הזול</h1>
+  <p>מעלים קבלה מהסופר ומגלים איפה אותו סל עולה הכי פחות: רמי לוי, ויקטורי, סופר טל או קרפור.</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. העלאת קבלה</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="image/*,application/pdf" hidden>
+      <strong>גררו לכאן צילום או PDF של הקבלה</strong>
+      <small>או לחצו לבחירת קובץ / צילום בטלפון</small>
+    </label>
+    <div class="row" style="margin-top:10px">
+      <button id="demoBtn">נסו עם קבלת דוגמה</button>
+      <span id="status" class="muted"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0">מחירונים</h2>
+      <button id="refreshAll">עדכון כל המחירונים</button>
+    </div>
+    <div id="demoBanner" class="banner hidden" style="margin-bottom:10px">מוצגים מחירי דוגמה (לא אמיתיים). לחצו "עדכון כל המחירונים" או ייבאו קובץ PriceFull לכל רשת.</div>
+    <div class="chains" id="chains"></div>
+  </section>
+
+  <section id="results" class="hidden" style="display:grid;gap:16px;min-width:0"></section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const ils = (n) => n == null ? '—' : '₪' + Number(n).toFixed(2);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let state = { chains: [], result: null };
+
+async function api(url, opts) {
+  const res = await fetch(url, opts);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || res.statusText);
+  return body;
+}
+function setStatus(html) { $('#status').innerHTML = html; }
+
+// ---------- chains ----------
+async function loadChains() {
+  state.chains = await api('/api/chains');
+  $('#demoBanner').classList.toggle('hidden', !state.chains.some((c) => c.source === 'demo'));
+  $('#chains').innerHTML = state.chains.map((c) => `
+    <div class="chain">
+      <div class="row" style="justify-content:space-between"><b>${esc(c.name)}</b>
+        ${c.loaded ? `<span class="pill ${c.source === 'demo' ? 'warn' : 'ok'}">${c.source === 'demo' ? 'דוגמה' : c.itemCount.toLocaleString() + ' מוצרים'}</span>`
+                   : '<span class="pill">אין נתונים</span>'}
+      </div>
+      <div class="muted" style="margin:4px 0 8px">
+        ${c.loaded ? `סניף ${esc(c.storeId ?? '?')} · ${new Date(c.fetchedAt).toLocaleString('he-IL')}` : (c.configured ? 'לא עודכן עדיין' : 'אין מקור אוטומטי – ייבאו קובץ')}
+      </div>
+      <div class="row">
+        <button data-refresh="${c.id}" ${c.configured ? '' : 'disabled'}>עדכון</button>
+        <button data-import="${c.id}">ייבוא קובץ</button>
+      </div>
+    </div>`).join('');
+}
+
+$('#chains').addEventListener('click', async (e) => {
+  const r = e.target.dataset.refresh, imp = e.target.dataset.import;
+  if (r) await refresh(r, e.target);
+  if (imp) {
+    const input = Object.assign(document.createElement('input'), { type: 'file', accept: '.xml,.gz,.zip' });
+    input.onchange = async () => {
+      const fd = new FormData(); fd.append('file', input.files[0]);
+      e.target.disabled = true; e.target.textContent = 'מייבא…';
+      try { await api(`/api/prices/${imp}/import`, { method: 'POST', body: fd }); await loadChains(); await recompare(); }
+      catch (err) { alert('הייבוא נכשל: ' + err.message); e.target.disabled = false; e.target.textContent = 'ייבוא קובץ'; }
+    };
+    input.click();
+  }
+});
+$('#refreshAll').onclick = (e) => refresh('all', e.target);
+
+async function refresh(id, btn) {
+  const label = btn.textContent; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const out = await api(`/api/prices/${id}/refresh`, { method: 'POST' });
+    const failed = out.filter((r) => !r.ok);
+    if (failed.length) alert('לא הצלחנו לעדכן:\n' + failed.map((f) => `${f.id}: ${f.error}`).join('\n'));
+    await loadChains(); await recompare();
+  } catch (err) { alert(err.message); }
+  btn.disabled = false; btn.textContent = label;
+}
+
+// ---------- receipt upload ----------
+const drop = $('#drop');
+['dragover', 'dragenter'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove('over')));
+drop.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+$('#file').onchange = (e) => e.target.files[0] && upload(e.target.files[0]);
+
+async function upload(file) {
+  setStatus('<span class="spinner"></span> קורא את הקבלה ומשווה מחירים… (עד דקה)');
+  const fd = new FormData(); fd.append('receipt', file);
+  try { show(await api('/api/receipt', { method: 'POST', body: fd })); setStatus(''); }
+  catch (err) { setStatus(`<span class="error">${esc(err.message)}</span>`); }
+  $('#file').value = '';
+}
+$('#demoBtn').onclick = async () => {
+  setStatus('<span class="spinner"></span>');
+  try { show(await api('/api/demo-receipt')); setStatus(''); }
+  catch (err) { setStatus(`<span class="error">${esc(err.message)}</span>`); }
+};
+
+async function recompare() {
+  if (!state.result) return;
+  try { show({ receipt: state.result.receipt, ...(await api('/api/compare', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: state.result.items }) })) }); }
+  catch (err) { setStatus(`<span class="error">${esc(err.message)}</span>`); }
+}
+
+// ---------- results ----------
+function show(r) {
+  state.result = r;
+  const el = $('#results'); el.classList.remove('hidden');
+  const best = r.carts.find((c) => c.chainId === r.bestChainId);
+  const max = Math.max(...r.carts.map((c) => c.estimatedTotal), 1);
+  const chainOrder = r.carts;
+  const methodLabel = { barcode: 'ברקוד', 'barcode-crossref': 'ברקוד (הצלבה)', name: 'לפי שם' };
+
+  const rows = r.items.map((it, i) => {
+    const costs = chainOrder.map((c) => c.lines[i]);
+    const found = costs.filter((l) => l.found).map((l) => l.cost);
+    const min = found.length ? Math.min(...found) : null;
+    const paid = it.line_total ?? (it.unit_price != null ? it.unit_price * (it.quantity || 1) : null);
+    return `<tr>
+      <td><input class="edit" data-i="${i}" data-f="name" value="${esc(it.name)}">
+        ${it.barcode ? `<span class="match">${esc(it.barcode)}</span>` : ''}</td>
+      <td><input class="edit qty" data-i="${i}" data-f="quantity" type="number" step="any" min="0" value="${it.quantity ?? 1}"></td>
+      <td class="num">${ils(paid)}</td>
+      ${costs.map((l) => l.found
+        ? `<td class="num ${l.cost === min && found.length > 1 ? 'cheap' : ''}" title="${esc(l.match.name)}">${ils(l.cost)}
+             <span class="match">${esc(l.match.name)} · ${methodLabel[l.match.method]}${l.match.method === 'name' ? ' ' + Math.round(l.match.score * 100) + '%' : ''}</span></td>`
+        : '<td class="num none">לא נמצא</td>').join('')}
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <section class="card">
+      <h2>2. הסל הזול ביותר</h2>
+      ${best ? `<div class="hero">
+        <div><div class="muted">הכי משתלם</div><div class="big">${esc(best.name)} · ${ils(best.estimatedTotal)}</div></div>
+        <div class="muted">בקבלה: ${ils(r.receiptTotal)}${r.savingsVsReceipt > 0 ? ` · <b style="color:var(--best)">חיסכון ${ils(r.savingsVsReceipt)}</b>` : ''}</div>
+      </div>` : ''}
+      <div class="bars">
+        ${r.carts.map((c) => `<div class="bar ${c.chainId === r.bestChainId ? 'best' : ''}">
+          <span>${esc(c.name)}</span>
+          <div class="track"><div class="fill" style="width:${(c.estimatedTotal / max * 100).toFixed(1)}%"></div></div>
+          <span class="num">${ils(c.estimatedTotal)}</span>
+        </div>
+        <div class="muted" style="font-size:12.5px;margin-top:-4px">נמצאו ${c.matchedCount}/${r.items.length} מוצרים${c.missing.length ? ` · חסרים: ${c.missing.map(esc).join(', ')}` : ''}</div>`).join('')}
+      </div>
+      <p class="muted" style="font-size:13px;margin:12px 0 0">
+        מוצר שלא נמצא ברשת מחושב לפי המחיר בקבלה כדי שההשוואה תהיה הוגנת.
+        על ${r.commonCount} המוצרים שנמצאו בכל הרשתות: ${r.carts.map((c) => `${esc(c.name)} ${ils(c.commonTotal)}`).join(' · ')}.
+      </p>
+      ${r.split.savingsVsBest > 0.5 ? `<div class="banner" style="margin-top:12px;background:var(--brand-soft);color:var(--brand)">
+        פיצול הסל בין רשתות (כל מוצר בזול ביותר) יעלה ${ils(r.split.total)} – עוד ${ils(r.split.savingsVsBest)} חיסכון.</div>` : ''}
+    </section>
+    <section class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <h2 style="margin:0">3. פירוט לפי מוצר</h2>
+        <button id="recalc" class="primary">חישוב מחדש</button>
+      </div>
+      <p class="muted" style="margin:0 0 8px;font-size:13px">אפשר לתקן שם או כמות ולחשב מחדש. הזול ביותר בכל שורה מודגש.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>מוצר</th><th>כמות</th><th class="num">בקבלה</th>${chainOrder.map((c) => `<th class="num">${esc(c.name)}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><th colspan="2">סה"כ (מוצרים שנמצאו)</th><th class="num">${ils(r.receiptTotal)}</th>${chainOrder.map((c) => `<th class="num">${ils(c.foundTotal)}</th>`).join('')}</tr></tfoot>
+      </table></div>
+    </section>`;
+
+  el.querySelectorAll('input.edit').forEach((inp) => inp.addEventListener('change', () => {
+    const it = state.result.items[inp.dataset.i];
+    if (inp.dataset.f === 'quantity') {
+      const q = parseFloat(inp.value) || 1;
+      if (it.line_total != null && it.quantity) it.line_total = Math.round(it.line_total / it.quantity * q * 100) / 100;
+      it.quantity = q;
+    }
+    else { it.name = inp.value; it.barcode = null; }
+  }));
+  $('#recalc').onclick = recompare;
+}
+
+loadChains().catch((e) => setStatus(`<span class="error">${esc(e.message)}</span>`));
+</script>
+</body>
+</html>
