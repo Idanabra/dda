@@ -1,6 +1,4 @@
-// Matches receipt lines to items in a chain's price catalog:
-// 1) exact barcode, 2) fuzzy Hebrew/English name match, 3) barcode borrowed
-// from a confident name match in another chain.
+// Product-name normalization and fuzzy matching for Hebrew receipt lines.
 
 const NIQQUD = /[֑-ׇ]/g;
 const FINALS = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
@@ -82,89 +80,18 @@ export function barcodeVariants(code) {
   return [...new Set([c, stripped, stripped.padStart(13, '0'), stripped.padStart(12, '0')])];
 }
 
-/** Inverted index over a catalog so name lookups don't scan every item. */
-export class CatalogIndex {
-  constructor(catalog) {
-    this.items = catalog?.items ?? {};
-    this.byToken = new Map();
-    this.byPrefix = new Map();
-    for (const [code, item] of Object.entries(this.items)) {
-      for (const t of new Set(tokenize(item.name))) {
-        if (isMeasure(t)) continue;
-        if (!this.byToken.has(t)) this.byToken.set(t, []);
-        this.byToken.get(t).push(code);
-        const p = t.slice(0, 3);
-        if (p.length >= 2) {
-          if (!this.byPrefix.has(p)) this.byPrefix.set(p, []);
-          this.byPrefix.get(p).push(code);
-        }
-      }
-    }
-  }
-  byBarcode(code) {
-    for (const v of barcodeVariants(code)) if (this.items[v]) return { code: v, item: this.items[v] };
-    return null;
-  }
-  searchName(name, limit = 3) {
-    const counts = new Map();
-    for (const t of tokenize(name)) {
-      if (isMeasure(t)) continue;
-      const list = this.byToken.get(t) ?? this.byPrefix.get(t.slice(0, 3)) ?? [];
-      if (list.length > 5000) continue; // too generic to be useful
-      for (const c of list) counts.set(c, (counts.get(c) ?? 0) + 1);
-    }
-    const candidates = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 300);
-    return candidates
-      .map(([code]) => ({ code, item: this.items[code], score: nameScore(name, this.items[code].name) }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-  }
-}
-
 export const MIN_NAME_SCORE = 0.55;
-const CONFIDENT = 0.8;
+export const CONFIDENT_NAME_SCORE = 0.8;
 
-/**
- * Match every receipt item against every chain.
- * Returns matches[itemIndex][chainId] = { code, name, price, method, score } | null
- */
-export function matchReceipt(receiptItems, indexes) {
-  const chainIds = Object.keys(indexes);
-  return receiptItems.map((ri) => {
-    const row = {};
-    const borrowed = new Set();
-    // Pass 1: barcode printed on the receipt.
-    for (const id of chainIds) {
-      const hit = ri.barcode ? indexes[id].byBarcode(ri.barcode) : null;
-      row[id] = hit ? { code: hit.code, ...pick(hit.item), method: 'barcode', score: 1 } : null;
-    }
-    // Pass 2: name search where barcode failed.
-    for (const id of chainIds) {
-      if (row[id]) continue;
-      const [best] = indexes[id].searchName(ri.name, 1);
-      if (best && best.score >= MIN_NAME_SCORE)
-        row[id] = { code: best.code, ...pick(best.item), method: 'name', score: round(best.score) };
-    }
-    // Pass 3: a confident match anywhere gives a barcode to try everywhere else.
-    for (const id of chainIds) {
-      const m = row[id];
-      if (!m || (m.method === 'name' && m.score < CONFIDENT)) continue;
-      borrowed.add(m.code);
-    }
-    for (const id of chainIds) {
-      if (row[id]?.method === 'barcode') continue;
-      for (const code of borrowed) {
-        const hit = indexes[id].byBarcode(code);
-        if (hit && hit.code === row[id]?.code) break; // name match already agrees
-        if (hit) {
-          row[id] = { code: hit.code, ...pick(hit.item), method: 'barcode-crossref', score: 0.95 };
-          break;
-        }
-      }
-    }
-    return row;
-  });
+export const sameBarcode = (a, b) =>
+  Boolean(a && b) && String(a).replace(/^0+/, '') === String(b).replace(/^0+/, '');
+
+/** Best name match among search results, or null if nothing is close enough. */
+export function bestByName(query, products) {
+  let best = null;
+  for (const p of products) {
+    const score = nameScore(query, p.name);
+    if (!best || score > best.score) best = { product: p, score };
+  }
+  return best && best.score >= MIN_NAME_SCORE ? best : null;
 }
-
-const pick = (item) => ({ name: item.name, price: item.price, isWeighted: item.isWeighted });
-const round = (n) => Math.round(n * 100) / 100;

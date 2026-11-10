@@ -2,21 +2,22 @@
   "name": "cart-compare",
   "version": "0.1.0",
   "private": true,
-  "description": "Upload a supermarket receipt and find the cheapest cart across Rami Levy, Victory, Super Tal and Carrefour",
+  "description": "Upload a supermarket receipt and find the cheapest cart across Rami Levy, Victory, Super Tal and Carrefour online stores",
   "type": "module",
   "main": "src/server.js",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=22.19"
+  },
   "scripts": {
     "start": "node src/server.js",
-    "seed-demo": "node scripts/seed-demo.js",
-    "update-prices": "node scripts/update-prices.js",
-    "import-prices": "node scripts/import-prices.js",
+    "demo": "DEMO=1 node src/server.js",
+    "check-stores": "node scripts/check-stores.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
     "express": "^5.3.0",
-    "fast-xml-parser": "^5.12.0",
-    "multer": "^2.5.0"
+    "multer": "^2.5.0",
+    "undici": "^8.12.4"
   }
 }

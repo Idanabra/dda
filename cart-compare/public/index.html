@@ -69,7 +69,7 @@
 <body>
 <header>
   <h1>🛒 הסל הזול</h1>
-  <p>מעלים קבלה מהסופר ומגלים איפה אותו סל עולה הכי פחות: רמי לוי, ויקטורי, סופר טל או קרפור.</p>
+  <p>מעלים קבלה מהסופר, והאפליקציה בודקת כל מוצר לפי ברקוד באתרי האונליין של רמי לוי, ויקטורי, סופר טל וקרפור ומוצאת את הסל הזול.</p>
 </header>
 
 <main>
@@ -87,11 +87,8 @@
   </section>
 
   <section class="card">
-    <div class="row" style="justify-content:space-between;margin-bottom:12px">
-      <h2 style="margin:0">מחירונים</h2>
-      <button id="refreshAll">עדכון כל המחירונים</button>
-    </div>
-    <div id="demoBanner" class="banner hidden" style="margin-bottom:10px">מוצגים מחירי דוגמה (לא אמיתיים). לחצו "עדכון כל המחירונים" או ייבאו קובץ PriceFull לכל רשת.</div>
+    <h2>רשתות</h2>
+    <div id="demoBanner" class="banner hidden" style="margin-bottom:10px">מצב הדגמה: המחירים מזויפים ולא נבדקים באתרים.</div>
     <div class="chains" id="chains"></div>
   </section>
 
@@ -113,50 +110,23 @@ async function api(url, opts) {
 function setStatus(html) { $('#status').innerHTML = html; }
 
 // ---------- chains ----------
+function renderChains(errors = {}) {
+  $('#demoBanner').classList.toggle('hidden', !state.chains.some((c) => c.demo));
+  $('#chains').innerHTML = state.chains.map((c) => {
+    const err = c.disabled || errors[c.id];
+    const pill = c.disabled ? '<span class="pill">לא פעיל</span>'
+      : errors[c.id] ? '<span class="pill warn">לא זמין</span>'
+      : c.demo ? '<span class="pill warn">דוגמה</span>'
+      : '<span class="pill ok">חיפוש חי באתר</span>';
+    return `<div class="chain">
+      <div class="row" style="justify-content:space-between"><b>${esc(c.name)}</b>${pill}</div>
+      <div class="muted" style="margin-top:4px">${err ? esc(err) : `סניף ${esc(c.branch ?? '')}`}</div>
+    </div>`;
+  }).join('');
+}
 async function loadChains() {
   state.chains = await api('/api/chains');
-  $('#demoBanner').classList.toggle('hidden', !state.chains.some((c) => c.source === 'demo'));
-  $('#chains').innerHTML = state.chains.map((c) => `
-    <div class="chain">
-      <div class="row" style="justify-content:space-between"><b>${esc(c.name)}</b>
-        ${c.loaded ? `<span class="pill ${c.source === 'demo' ? 'warn' : 'ok'}">${c.source === 'demo' ? 'דוגמה' : c.itemCount.toLocaleString() + ' מוצרים'}</span>`
-                   : '<span class="pill">אין נתונים</span>'}
-      </div>
-      <div class="muted" style="margin:4px 0 8px">
-        ${c.loaded ? `סניף ${esc(c.storeId ?? '?')} · ${new Date(c.fetchedAt).toLocaleString('he-IL')}` : (c.configured ? 'לא עודכן עדיין' : 'אין מקור אוטומטי – ייבאו קובץ')}
-      </div>
-      <div class="row">
-        <button data-refresh="${c.id}" ${c.configured ? '' : 'disabled'}>עדכון</button>
-        <button data-import="${c.id}">ייבוא קובץ</button>
-      </div>
-    </div>`).join('');
-}
-
-$('#chains').addEventListener('click', async (e) => {
-  const r = e.target.dataset.refresh, imp = e.target.dataset.import;
-  if (r) await refresh(r, e.target);
-  if (imp) {
-    const input = Object.assign(document.createElement('input'), { type: 'file', accept: '.xml,.gz,.zip' });
-    input.onchange = async () => {
-      const fd = new FormData(); fd.append('file', input.files[0]);
-      e.target.disabled = true; e.target.textContent = 'מייבא…';
-      try { await api(`/api/prices/${imp}/import`, { method: 'POST', body: fd }); await loadChains(); await recompare(); }
-      catch (err) { alert('הייבוא נכשל: ' + err.message); e.target.disabled = false; e.target.textContent = 'ייבוא קובץ'; }
-    };
-    input.click();
-  }
-});
-$('#refreshAll').onclick = (e) => refresh('all', e.target);
-
-async function refresh(id, btn) {
-  const label = btn.textContent; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
-  try {
-    const out = await api(`/api/prices/${id}/refresh`, { method: 'POST' });
-    const failed = out.filter((r) => !r.ok);
-    if (failed.length) alert('לא הצלחנו לעדכן:\n' + failed.map((f) => `${f.id}: ${f.error}`).join('\n'));
-    await loadChains(); await recompare();
-  } catch (err) { alert(err.message); }
-  btn.disabled = false; btn.textContent = label;
+  renderChains();
 }
 
 // ---------- receipt upload ----------
@@ -167,28 +137,31 @@ drop.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.fi
 $('#file').onchange = (e) => e.target.files[0] && upload(e.target.files[0]);
 
 async function upload(file) {
-  setStatus('<span class="spinner"></span> קורא את הקבלה ומשווה מחירים… (עד דקה)');
+  setStatus('<span class="spinner"></span> קורא את הקבלה ובודק מחירים באתרי הרשתות… (יכול לקחת דקה-שתיים)');
   const fd = new FormData(); fd.append('receipt', file);
   try { show(await api('/api/receipt', { method: 'POST', body: fd })); setStatus(''); }
   catch (err) { setStatus(`<span class="error">${esc(err.message)}</span>`); }
   $('#file').value = '';
 }
 $('#demoBtn').onclick = async () => {
-  setStatus('<span class="spinner"></span>');
+  setStatus('<span class="spinner"></span> בודק מחירים באתרי הרשתות…');
   try { show(await api('/api/demo-receipt')); setStatus(''); }
   catch (err) { setStatus(`<span class="error">${esc(err.message)}</span>`); }
 };
 
 async function recompare() {
   if (!state.result) return;
+  setStatus('<span class="spinner"></span> מחשב מחדש…');
   try { show({ receipt: state.result.receipt, ...(await api('/api/compare', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: state.result.items }) })) }); }
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: state.result.items }) })) }); setStatus(''); }
   catch (err) { setStatus(`<span class="error">${esc(err.message)}</span>`); }
 }
 
 // ---------- results ----------
 function show(r) {
   state.result = r;
+  renderChains(Object.fromEntries((r.chains || []).filter((c) => c.error).map((c) => [c.id, c.error])));
+  const down = (r.chains || []).filter((c) => c.error);
   const el = $('#results'); el.classList.remove('hidden');
   const best = r.carts.find((c) => c.chainId === r.bestChainId);
   const max = Math.max(...r.carts.map((c) => c.estimatedTotal), 1);
@@ -206,15 +179,22 @@ function show(r) {
       <td><input class="edit qty" data-i="${i}" data-f="quantity" type="number" step="any" min="0" value="${it.quantity ?? 1}"></td>
       <td class="num">${ils(paid)}</td>
       ${costs.map((l) => l.found
-        ? `<td class="num ${l.cost === min && found.length > 1 ? 'cheap' : ''}" title="${esc(l.match.name)}">${ils(l.cost)}
+        ? `<td class="num ${l.cost === min && found.length > 1 ? 'cheap' : ''}" title="${esc(l.match.name)}">${l.match.url ? `<a href="${esc(l.match.url)}" target="_blank" rel="noopener" style="color:inherit">${ils(l.cost)}</a>` : ils(l.cost)}
+             ${l.match.salePrice && !r.useSalePrices ? `<span class="match" style="color:var(--warn)">מבצע ${ils(l.match.salePrice)} ליח'</span>` : ''}
              <span class="match">${esc(l.match.name)} · ${methodLabel[l.match.method]}${l.match.method === 'name' ? ' ' + Math.round(l.match.score * 100) + '%' : ''}</span></td>`
         : '<td class="num none">לא נמצא</td>').join('')}
     </tr>`;
   }).join('');
 
+  if (!r.carts.length) {
+    el.innerHTML = `<section class="card"><h2>2. הסל הזול ביותר</h2>
+      <p class="error" style="margin:0">אף רשת לא ענתה. האתרים חוסמים לרוב גישה מחוץ לישראל – הריצו ממחשב בישראל או הגדירו SCRAPE_PROXY_URL (ראו README).</p></section>`;
+    return;
+  }
   el.innerHTML = `
     <section class="card">
       <h2>2. הסל הזול ביותר</h2>
+      ${down.length ? `<div class="banner" style="margin-bottom:12px">לא נבדקו: ${down.map((c) => esc(c.name)).join(', ')} (פרטים בכרטיסי הרשתות למעלה)</div>` : ''}
       ${best ? `<div class="hero">
         <div><div class="muted">הכי משתלם</div><div class="big">${esc(best.name)} · ${ils(best.estimatedTotal)}</div></div>
         <div class="muted">בקבלה: ${ils(r.receiptTotal)}${r.savingsVsReceipt > 0 ? ` · <b style="color:var(--best)">חיסכון ${ils(r.savingsVsReceipt)}</b>` : ''}</div>
@@ -228,7 +208,7 @@ function show(r) {
         <div class="muted" style="font-size:12.5px;margin-top:-4px">נמצאו ${c.matchedCount}/${r.items.length} מוצרים${c.missing.length ? ` · חסרים: ${c.missing.map(esc).join(', ')}` : ''}</div>`).join('')}
       </div>
       <p class="muted" style="font-size:13px;margin:12px 0 0">
-        מוצר שלא נמצא ברשת מחושב לפי המחיר בקבלה כדי שההשוואה תהיה הוגנת.
+        מחירים רגילים מאתרי האונליין (מבצעים מוצגים בנפרד). מוצר שלא נמצא ברשת מחושב לפי המחיר בקבלה כדי שההשוואה תהיה הוגנת.
         על ${r.commonCount} המוצרים שנמצאו בכל הרשתות: ${r.carts.map((c) => `${esc(c.name)} ${ils(c.commonTotal)}`).join(' · ')}.
       </p>
       ${r.split.savingsVsBest > 0.5 ? `<div class="banner" style="margin-top:12px;background:var(--brand-soft);color:var(--brand)">

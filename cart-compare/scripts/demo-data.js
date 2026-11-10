@@ -1,4 +1,4 @@
-// Synthetic demo catalogs (NOT real prices) so the app can be tried without network access.
+// Synthetic demo catalogs (NOT real prices) so the app can be tried offline with DEMO=1.
 // Each chain gets a slightly different price multiplier, name spelling and a few gaps.
 
 export const DEMO_PRODUCTS = [
@@ -34,11 +34,11 @@ export const DEMO_PRODUCTS = [
   ['7290000000301', 'פיתות 10 יחידות', 8.9],
 ];
 
-const CHAIN_PROFILES = {
-  rami_levy: { chainCode: '7290058140886', storeId: '001', factor: 0.93, skip: [13], seed: 1 },
-  victory: { chainCode: '7290696200003', storeId: '002', factor: 0.97, skip: [20], seed: 2 },
-  super_tal: { chainCode: '7290000000000', storeId: '001', factor: 1.04, skip: [], seed: 3 },
-  carrefour: { chainCode: '7290055700007', storeId: '003', factor: 0.99, skip: [26, 9], seed: 4 },
+export const DEMO_CHAINS = {
+  rami_levy: { name: 'רמי לוי', nameEn: 'Rami Levy', factor: 0.93, skip: [13], seed: 1 },
+  victory: { name: 'ויקטורי', nameEn: 'Victory', factor: 0.97, skip: [20], seed: 2 },
+  super_tal: { name: 'סופר טל', nameEn: 'Super Tal', factor: 1.04, skip: [], seed: 3 },
+  carrefour: { name: 'קרפור', nameEn: 'Carrefour', factor: 0.99, skip: [26, 9], seed: 4 },
 };
 
 function jitter(seed, i) {
@@ -46,17 +46,11 @@ function jitter(seed, i) {
   return 0.94 + (x - Math.floor(x)) * 0.12; // 0.94 .. 1.06
 }
 
-const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-
-export function demoPriceXml(chainId) {
-  const p = CHAIN_PROFILES[chainId];
-  const items = DEMO_PRODUCTS.map(([code, name, price, weighted], i) => {
-    if (p.skip.includes(i)) return '';
-    const v = (Math.round(price * p.factor * jitter(p.seed, i) * 10) / 10 - 0.01).toFixed(2);
-    return `<Item><ItemCode>${code}</ItemCode><ItemName>${esc(name)}</ItemName><ItemPrice>${v}</ItemPrice>` +
-      `<bIsWeighted>${weighted ? 1 : 0}</bIsWeighted><UnitQty>${weighted ? 'קילו' : 'יחידה'}</UnitQty></Item>`;
-  }).join('');
-  return `<?xml version="1.0" encoding="utf-8"?><Root><ChainId>${p.chainCode}</ChainId><StoreId>${p.storeId}</StoreId><Items>${items}</Items></Root>`;
+/** Fake price of product i at a chain, or null if that chain "doesn't carry" it. */
+export function demoPrice(chainId, i, base) {
+  const p = DEMO_CHAINS[chainId];
+  if (p.skip.includes(i)) return null;
+  return Number((Math.round(base * p.factor * jitter(p.seed, i) * 10) / 10 - 0.01).toFixed(2));
 }
 
 /** A sample receipt (as Claude would return it) for trying the UI without an API key. */

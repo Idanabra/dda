@@ -18,9 +18,10 @@ export function receiptLineCost(item) {
 /**
  * @param items   receipt items [{ name, barcode, quantity, unit_price, line_total }]
  * @param matches output of matchReceipt
- * @param chains  [{ id, name, nameEn }] — only chains with loaded catalogs
+ * @param chains  [{ id, name, nameEn }] — stores that answered
+ * @param opts.useSalePrices  use the store's sale price when it has one
  */
-export function compareCarts(items, matches, chains) {
+export function compareCarts(items, matches, chains, { useSalePrices = false } = {}) {
   const carts = chains.map((c) => {
     let found = 0;
     let estimated = 0;
@@ -35,7 +36,7 @@ export function compareCarts(items, matches, chains) {
         if (paid !== null) estimated += paid;
         return { index: i, found: false, cost: null };
       }
-      const cost = lineCost(it, m.price);
+      const cost = lineCost(it, useSalePrices && m.salePrice ? m.salePrice : m.price);
       found += cost;
       estimated += cost;
       return { index: i, found: true, cost, match: m };

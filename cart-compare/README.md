@@ -1,70 +1,84 @@
 # 🛒 הסל הזול — Cheapest Cart
 
-Upload a photo or PDF of a supermarket receipt. The app reads every line with Claude, finds the same products in the price lists of **Rami Levy, Victory, Super Tal and Carrefour**, and shows which chain gives the cheapest cart. It also shows the total if you split the cart across chains.
+Upload a photo or PDF of a supermarket receipt. The app reads every line with Claude, then **searches each product by barcode on the online stores** of Rami Levy, Victory, Super Tal and Carrefour. It shows which store has the cheapest cart, and what you'd pay if you split the cart across stores.
+
+There are no price files to download or upload: prices are looked up live on the retailers' websites.
 
 ## Quick start
 
 ```bash
 cd cart-compare
-npm install
-export ANTHROPIC_API_KEY=sk-ant-...   # needed to read receipts
-npm run update-prices                 # download real price lists (see below)
-#   or: npm run seed-demo             # offline demo with FAKE prices
-npm start                             # http://localhost:3000
+npm install                         # Node 22.19+
+export ANTHROPIC_API_KEY=sk-ant-... # used to read receipts
+npm run check-stores                # verify the store websites answer from your machine
+npm start                           # http://localhost:3000
 ```
 
-The **"נסו עם קבלת דוגמה"** button runs a sample receipt without an API key.
+To try the app offline with fake prices, run `npm run demo` and press **"נסו עם קבלת דוגמה"**.
+
+## ⚠️ Run it from Israel
+
+The retailers' websites usually block requests from outside Israel and from cloud servers. Rami Levy also uses bot protection. Run the app on a computer in Israel. If you host it on a server, route the store requests through an Israeli proxy:
+
+```bash
+SCRAPE_PROXY_URL=http://user:pass@il-proxy.example:8080 npm start
+```
+
+`npm run check-stores [barcode] [name]` runs a barcode search and a name search on each store, so you can see what works from your machine.
 
 ## How it works
 
-1. **Reading the receipt** (`src/receipt.js`): the image or PDF goes to Claude (`claude-opus-5-5`, structured JSON output). Claude returns each line's name, barcode if printed, quantity or weight, unit price and line total. Discount lines are folded into their products. Deposit, bag and payment lines are skipped.
-2. **Price data** (`src/feeds/`, `src/store.js`): Israel's Price Transparency regulations (חוק המזון – שקיפות מחירים) make every chain publish `PriceFull*.xml(.gz)` files for each store. The app downloads the latest file per chain and caches it in `data/prices/<chain>.json`. The parser handles the different XML styles chains use (`Items/Item`, `Products/Product`, `ItemNm`, UTF‑16, gzip/zip).
-3. **Matching** (`src/matcher.js`) runs in this order:
-   - the barcode, if the receipt prints one
-   - a fuzzy Hebrew name match: units are normalized (גר/גרם/ק"ג → grams, ל/ליטר/מ"ל → ml, %), and a size mismatch is penalized
-   - a barcode taken from a confident match in another chain, used to find the same product everywhere
-4. **Cart comparison** (`src/cart.js`):
-   - **Estimated total:** if a chain doesn't carry an item, the price you paid stands in for it. This keeps totals comparable, and the cheapest estimated total wins.
-   - **Common-items total:** the total over only the products that every chain carries.
+1. **Reading the receipt** (`src/receipt.js`): Claude (`claude-opus-5-5`, structured JSON output) extracts each line's name, barcode if printed, quantity or weight, unit price and line total.
+2. **Live store lookup** (`src/lookup.js`, `src/sources/`). For each receipt line, in each store:
+   1. If the receipt prints a barcode, the app searches that store for it, the same way the store's own site search does.
+   2. Otherwise it searches the store by product name and keeps the best fuzzy match (`src/matcher.js`: Hebrew normalization, units, size checks).
+   3. A confident match in one store supplies a barcode, which is then searched in the other stores. That way the same exact product is compared everywhere, even when the receipt has no barcodes.
+3. **Comparison** (`src/cart.js`):
+   - **Estimated total per store:** if a store doesn't carry an item, the price you paid stands in for it.
+   - **Common-items total:** the total over only the products every store carries.
    - **Split cart:** each item bought where it's cheapest.
 
-In the UI you can fix a product name or quantity and press **חישוב מחדש** to recalculate.
+Lookups are cached for 12 hours in `data/cache.json` (`CACHE_HOURS` to change), and requests to each site are rate-limited.
 
-## Price sources
+## Stores
 
-| Chain | Default source | Notes |
+| Store | How it's searched | Default branch | Override |
+|---|---|---|---|
+| Rami Levy | `POST https://www.rami-levy.co.il/api/catalog` `{q, store, aggs}` | `331` | `RAMI_LEVY_STORE_ID`, optional `RAMI_LEVY_TOKEN` |
+| Victory | `https://www.victoryonline.co.il/v2/retailers/1470/branches/{branch}/products?q=…` | `2930` (online, Lod) | `VICTORY_BRANCH_ID` |
+| Carrefour | `https://www.carrefour.co.il/v2/retailers/1540/branches/{branch}/products?q=…` | `3003` | `CARREFOUR_BRANCH_ID` |
+| Super Tal | **not configured** | — | see below |
+
+Online prices differ by branch, so set the branch that delivers to you. The branch lists are at `/v2/retailers/<id>/branches?appId=2&languageId=1` on the Victory and Carrefour sites.
+
+The API details come from open-source projects that document these sites ([rami-levy-mcp](https://github.com/shilomagen/rami-levy-mcp) and [SuperMarketScraping](https://github.com/tomer362/SuperMarketScraping)). They have **not** been verified from this repository's CI, because the sites block non-Israeli traffic. Run `npm run check-stores` to confirm. Sites change: if a store stops answering, open its search page in Chrome, open DevTools → Network, and compare the requests with `src/sources/`.
+
+**Super Tal:** I couldn't find an online store for it. If its site runs on the same platform as Victory and Carrefour (its network requests look like `/v2/retailers/<id>/branches/<id>/products`), set:
+
+```bash
+SUPER_TAL_SITE_URL=https://… SUPER_TAL_RETAILER_ID=… SUPER_TAL_BRANCH_ID=…
+```
+
+If it uses a different platform, it needs its own adapter in `src/sources/`. Each adapter only implements `searchBarcode(code)` and `searchName(text)`.
+
+## Settings
+
+| Variable | Default | |
 |---|---|---|
-| Rami Levy | `url.publishedprices.co.il` (Cerberus), user `RamiLevi` | |
-| Victory | `laibcatalog.co.il` listing page | |
-| Carrefour | `prices.carrefour.co.il` listing page | |
-| Super Tal | **none built in** | Set one of the env vars below, or import a file |
-
-The portals change from time to time. Every chain can be overridden with environment variables (`<CHAIN>` = `RAMI_LEVY`, `VICTORY`, `SUPER_TAL`, `CARREFOUR`):
-
-```bash
-<CHAIN>_PRICE_URL=https://…/PriceFull….gz   # direct link to one file
-<CHAIN>_LISTING_URL=https://…               # HTML page linking to PriceFull files
-<CHAIN>_CERBERUS_USER=username              # publishedprices.co.il account (+ <CHAIN>_CERBERUS_PASSWORD)
-<CHAIN>_STORE_ID=039                        # which branch to price (default: lowest store number)
-```
-
-Prices differ between branches. Set `<CHAIN>_STORE_ID` to the branch you would actually shop at.
-
-**Manual import:** download a `PriceFull` file yourself, then use the **ייבוא קובץ** button in the UI, or run:
-
-```bash
-npm run import-prices super_tal ~/Downloads/PriceFull7290000000000-001-202611100300.gz
-```
+| `PRICE_MODE` | `regular` | `sale` = use the store's online sale price when it has one |
+| `SCRAPE_PROXY_URL` | — | proxy for store requests (`HTTPS_PROXY` / `NO_PROXY` are also honored) |
+| `SCRAPE_MIN_INTERVAL_MS` | `250` | minimum gap between requests to the same site |
+| `CACHE_HOURS` | `12` | how long lookups are cached |
+| `CLAUDE_MODEL` | `claude-opus-5-5` | model that reads receipts |
+| `DEMO` | — | `1` = fake offline stores |
 
 ## API
 
 | Method | Path | |
 |---|---|---|
-| `POST` | `/api/receipt` | multipart field `receipt` (jpeg/png/webp/gif/pdf) → extraction + comparison |
-| `POST` | `/api/compare` | `{ items: [...] }` → comparison (for edited items) |
-| `GET`  | `/api/chains` | price data status per chain |
-| `POST` | `/api/prices/:id/refresh` | download latest prices (`:id` = chain id or `all`) |
-| `POST` | `/api/prices/:id/import` | multipart field `file` with a PriceFull file |
+| `POST` | `/api/receipt` | multipart field `receipt` (jpeg/png/webp/gif/pdf) → extraction + live comparison |
+| `POST` | `/api/compare` | `{ items: [...] }` → live comparison (after editing items) |
+| `GET`  | `/api/chains` | configured stores and branches |
 | `GET`  | `/api/demo-receipt` | sample receipt comparison |
 
 ## Tests
@@ -73,8 +87,10 @@ npm run import-prices super_tal ~/Downloads/PriceFull7290000000000-001-202611100
 npm test
 ```
 
+The tests run the store adapters against local mock servers that return the stores' response shapes, so they need no network access.
+
 ## Limitations
 
-- Club and promotion prices (`PromoFull` files) are not applied yet. Comparisons use regular shelf prices.
-- Produce sold by weight often has store-internal codes, so it is matched by name. Check those rows in the table.
-- Online-store prices can differ from the branch prices published in the transparency files.
+- Club-member and multi-buy deals ("2 ב־20") aren't applied. Single-item online sale prices are shown, and are used when `PRICE_MODE=sale`.
+- Produce sold by weight usually has no barcode on the receipt, so it's matched by name. Check those rows.
+- Online-store prices can differ from in-store prices.
